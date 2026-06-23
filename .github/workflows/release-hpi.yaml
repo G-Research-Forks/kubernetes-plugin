@@ -25,10 +25,11 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # Integration tests need a live kind cluster, so skip them here.
+      # Integration tests need a live kind cluster; skip test compilation too
+      # since their dependencies aren't needed to build the .hpi.
       # The tag name (github.ref_name) is used as the plugin version.
       - name: Build .hpi
-        run: mvn -B clean package -DskipTests -Dchangelist="${GITHUB_REF_NAME}"
+        run: mvn -B clean package -Dmaven.test.skip=true -Dchangelist="${GITHUB_REF_NAME}"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
