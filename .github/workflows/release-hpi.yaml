@@ -1,0 +1,37 @@
+# Builds the plugin and publishes the .hpi as a GitHub Release on this fork.
+# Trigger by pushing a tag whose name is the plugin version, e.g.:
+#   git tag 4423.vb_59f230b_ce53-grfork.1
+#   git push gr 4423.vb_59f230b_ce53-grfork.1
+# Users install the resulting .hpi via Jenkins -> Manage Plugins -> Advanced -> Deploy Plugin.
+
+name: release-hpi
+on:
+  push:
+    tags:
+      - '*-grfork.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Integration tests need a live kind cluster, so skip them here.
+      # The tag name (github.ref_name) is used as the plugin version.
+      - name: Build .hpi
+        run: mvn -B clean package -DskipTests -Dchangelist="${GITHUB_REF_NAME}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/*.hpi
+          generate_release_notes: true
