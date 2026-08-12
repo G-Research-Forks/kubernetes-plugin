@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -132,15 +134,44 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
 
         @Override
         protected void execute(TaskListener listener) throws IOException, InterruptedException {
-            annotateLiveAgents(listener);
-            garbageCollect();
+            var sweep = Metrics.metricRegistry()
+                    .timer(MetricNames.GC_SWEEP_DURATION)
+                    .time();
+            try {
+                var annotate = Metrics.metricRegistry()
+                        .timer(MetricNames.GC_ANNOTATE_DURATION)
+                        .time();
+                int annotated;
+                try {
+                    annotated = annotateLiveAgents(listener);
+                } finally {
+                    annotate.stop();
+                }
+                Metrics.metricRegistry()
+                        .histogram(MetricNames.GC_AGENTS_ANNOTATED)
+                        .update(annotated);
+
+                var collect = Metrics.metricRegistry()
+                        .timer(MetricNames.GC_COLLECT_DURATION)
+                        .time();
+                try {
+                    garbageCollect();
+                } finally {
+                    collect.stop();
+                }
+            } finally {
+                var elapsed = sweep.stop();
+                listener.getLogger().println("Pod GC sweep took " + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
+            }
         }
 
-        private static void annotateLiveAgents(TaskListener listener) {
-            Arrays.stream(Jenkins.get().getComputers())
+        private static int annotateLiveAgents(TaskListener listener) {
+            var computers = Arrays.stream(Jenkins.get().getComputers())
                     .filter(KubernetesComputer.class::isInstance)
                     .map(KubernetesComputer.class::cast)
-                    .forEach(kc -> kc.annotateTtl(listener));
+                    .collect(Collectors.toList());
+            computers.forEach(kc -> kc.annotateTtl(listener));
+            return computers.size();
         }
 
         private static void garbageCollect() {
@@ -194,6 +225,9 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
                                     .forEach(pod -> {
                                         LOGGER.log(Level.INFO, () -> "Deleting orphan pod " + getQualifiedName(pod));
                                         client.resource(pod).delete();
+                                        Metrics.metricRegistry()
+                                                .counter(MetricNames.GC_PODS_DELETED)
+                                                .inc();
                                     });
                         }
                     } catch (KubernetesClientException e) {

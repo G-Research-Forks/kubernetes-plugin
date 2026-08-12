@@ -570,6 +570,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 var ns = getNamespace();
                 var name = getPodName();
                 var l = Instant.now();
+                var patchTimer = Metrics.metricRegistry()
+                        .timer(MetricNames.GC_ANNOTATE_PATCH_DURATION)
+                        .time();
                 try {
                     kubernetesCloud
                             .getPodResource(ns, name)
@@ -579,13 +582,20 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     e.printStackTrace(listener.error("Failed to authenticate to Kubernetes cluster"));
                 } catch (IOException e) {
                     e.printStackTrace(listener.error("Failed to connect to Kubernetes cluster"));
+                } finally {
+                    patchTimer.stop();
                 }
                 listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
                 LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
+                var saveTimer = Metrics.metricRegistry()
+                        .timer(MetricNames.GC_ANNOTATE_SAVE_DURATION)
+                        .time();
                 try {
                     save();
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e, () -> "Failed to save");
+                } finally {
+                    saveTimer.stop();
                 }
             });
         } catch (RuntimeException e) {
