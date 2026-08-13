@@ -135,12 +135,12 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
         protected void execute(TaskListener listener) throws IOException, InterruptedException {
             var registry = Metrics.metricRegistry();
             try (var sweep = registry.timer(MetricNames.GC_SWEEP_DURATION).time()) {
-                int annotated;
+                int considered;
                 try (var annotate =
                         registry.timer(MetricNames.GC_ANNOTATE_DURATION).time()) {
-                    annotated = annotateLiveAgents(listener);
+                    considered = annotateLiveAgents(listener);
                 }
-                registry.histogram(MetricNames.GC_AGENTS_CONSIDERED).update(annotated);
+                registry.histogram(MetricNames.GC_AGENTS_CONSIDERED).update(considered);
                 try (var collect =
                         registry.timer(MetricNames.GC_COLLECT_DURATION).time()) {
                     garbageCollect();
