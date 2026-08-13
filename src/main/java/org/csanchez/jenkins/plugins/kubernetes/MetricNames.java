@@ -18,19 +18,27 @@ public class MetricNames {
 
     /** Duration of the whole garbage collection tick, including annotation and deletion */
     public static final String GC_SWEEP_DURATION = PREFIX + ".gc.sweep.duration.seconds";
-    /** Duration of the TTL refresh phase alone, across all live agents. */
+
+    /** Duration histogram of the TTL refresh phase alone, across all live agents. */
     public static final String GC_ANNOTATE_DURATION = PREFIX + ".gc.annotate.duration.seconds";
-    /** Duration of the orphan detection and deletion phase alone. */
-    public static final String GC_COLLECT_DURATION = PREFIX + ".gc.collect.duration.seconds";
 
     /** Per-agent duration of the Kubernetes PATCH that refreshes the TTL annotation. */
     public static final String GC_ANNOTATE_PATCH_DURATION = PREFIX + ".gc.annotate.patch.duration.seconds";
     /** Per-agent duration of the {@code save()} XML write that follows the TTL PATCH. */
     public static final String GC_ANNOTATE_SAVE_DURATION = PREFIX + ".gc.annotate.save.duration.seconds";
-    /** A count of TTL refresh PATCHes that failed, potentialling resulting in pod GC or slow sweeps */
+
+    /** Cumulative time spent in the TTL refresh phase, in microseconds. Histograms don't carry totals */
+    public static final String GC_ANNOTATE_MICROS = PREFIX + ".gc.annotate.total_duration.micros";
+    /** Cumulative time spent in {@code save()} during the TTL refresh phase, in microseconds */
+    public static final String GC_ANNOTATE_SAVE_MICROS = PREFIX + ".gc.annotate.save.total_duration.micros";
+
+    /** A count of TTL refresh PATCHes that failed, potentially resulting in pod GC or slow sweeps */
     public static final String GC_ANNOTATE_PATCH_FAILED = PREFIX + ".gc.annotate.patch.failed";
     /** Number of live agents whose TTL annotation was considered for annotation. */
     public static final String GC_AGENTS_CONSIDERED = PREFIX + ".gc.agents.considered";
+
+    /** Duration of the orphan detection and deletion phase alone. */
+    public static final String GC_COLLECT_DURATION = PREFIX + ".gc.collect.duration.seconds";
     /** Number of pods deleted for carrying a TTL annotation older than the configured timeout. */
     public static final String GC_PODS_DELETED = PREFIX + ".gc.pods.deleted";
 

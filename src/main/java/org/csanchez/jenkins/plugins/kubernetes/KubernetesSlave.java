@@ -589,11 +589,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 }
                 listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
                 LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
-                try (var saveTimer =
-                        registry.timer(MetricNames.GC_ANNOTATE_SAVE_DURATION).time()) {
+                var saveTimer =
+                        registry.timer(MetricNames.GC_ANNOTATE_SAVE_DURATION).time();
+                try {
                     save();
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e, () -> "Failed to save");
+                } finally {
+                    registry.counter(MetricNames.GC_ANNOTATE_SAVE_MICROS)
+                            .inc(TimeUnit.NANOSECONDS.toMicros(saveTimer.stop()));
                 }
             });
         } catch (RuntimeException e) {

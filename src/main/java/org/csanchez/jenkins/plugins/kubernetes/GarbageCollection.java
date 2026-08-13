@@ -136,9 +136,12 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
             var registry = Metrics.metricRegistry();
             try (var sweep = registry.timer(MetricNames.GC_SWEEP_DURATION).time()) {
                 int considered;
-                try (var annotate =
-                        registry.timer(MetricNames.GC_ANNOTATE_DURATION).time()) {
+                var annotate = registry.timer(MetricNames.GC_ANNOTATE_DURATION).time();
+                try {
                     considered = annotateLiveAgents(listener);
+                } finally {
+                    registry.counter(MetricNames.GC_ANNOTATE_MICROS)
+                            .inc(TimeUnit.NANOSECONDS.toMicros(annotate.stop()));
                 }
                 registry.histogram(MetricNames.GC_AGENTS_CONSIDERED).update(considered);
                 try (var collect =
