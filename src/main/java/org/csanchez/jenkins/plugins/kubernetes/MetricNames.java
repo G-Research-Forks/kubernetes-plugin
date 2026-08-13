@@ -27,8 +27,10 @@ public class MetricNames {
     public static final String GC_ANNOTATE_PATCH_DURATION = PREFIX + ".gc.annotate.patch.duration.seconds";
     /** Per-agent duration of the {@code save()} XML write that follows the TTL PATCH. */
     public static final String GC_ANNOTATE_SAVE_DURATION = PREFIX + ".gc.annotate.save.duration.seconds";
-    /** Number of live agents whose TTL annotation was refreshed. */
-    public static final String GC_AGENTS_ANNOTATED = PREFIX + ".gc.agents.annotated";
+    /** A count of TTL refresh PATCHes that failed, potentialling resulting in pod GC or slow sweeps */
+    public static final String GC_ANNOTATE_PATCH_FAILED = PREFIX + ".gc.annotate.patch.failed";
+    /** Number of live agents whose TTL annotation was considered for annotation. */
+    public static final String GC_AGENTS_CONSIDERED = PREFIX + ".gc.agents.considered";
     /** Number of pods deleted for carrying a TTL annotation older than the configured timeout. */
     public static final String GC_PODS_DELETED = PREFIX + ".gc.pods.deleted";
 

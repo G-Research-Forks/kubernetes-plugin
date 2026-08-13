@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
@@ -134,34 +133,18 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
 
         @Override
         protected void execute(TaskListener listener) throws IOException, InterruptedException {
-            var sweep = Metrics.metricRegistry()
-                    .timer(MetricNames.GC_SWEEP_DURATION)
-                    .time();
-            try {
-                var annotate = Metrics.metricRegistry()
-                        .timer(MetricNames.GC_ANNOTATE_DURATION)
-                        .time();
+            var registry = Metrics.metricRegistry();
+            try (var sweep = registry.timer(MetricNames.GC_SWEEP_DURATION).time()) {
                 int annotated;
-                try {
+                try (var annotate =
+                        registry.timer(MetricNames.GC_ANNOTATE_DURATION).time()) {
                     annotated = annotateLiveAgents(listener);
-                } finally {
-                    annotate.stop();
                 }
-                Metrics.metricRegistry()
-                        .histogram(MetricNames.GC_AGENTS_ANNOTATED)
-                        .update(annotated);
-
-                var collect = Metrics.metricRegistry()
-                        .timer(MetricNames.GC_COLLECT_DURATION)
-                        .time();
-                try {
+                registry.histogram(MetricNames.GC_AGENTS_CONSIDERED).update(annotated);
+                try (var collect =
+                        registry.timer(MetricNames.GC_COLLECT_DURATION).time()) {
                     garbageCollect();
-                } finally {
-                    collect.stop();
                 }
-            } finally {
-                var elapsed = sweep.stop();
-                listener.getLogger().println("Pod GC sweep took " + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms");
             }
         }
 
@@ -169,7 +152,7 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
             var computers = Arrays.stream(Jenkins.get().getComputers())
                     .filter(KubernetesComputer.class::isInstance)
                     .map(KubernetesComputer.class::cast)
-                    .collect(Collectors.toList());
+                    .toList();
             computers.forEach(kc -> kc.annotateTtl(listener));
             return computers.size();
         }

@@ -570,32 +570,30 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 var ns = getNamespace();
                 var name = getPodName();
                 var l = Instant.now();
-                var patchTimer = Metrics.metricRegistry()
-                        .timer(MetricNames.GC_ANNOTATE_PATCH_DURATION)
-                        .time();
-                try {
+                var registry = Metrics.metricRegistry();
+                try (var patchTimer =
+                        registry.timer(MetricNames.GC_ANNOTATE_PATCH_DURATION).time()) {
                     kubernetesCloud
                             .getPodResource(ns, name)
                             .patch("{\"metadata\":{\"annotations\":{\"" + GarbageCollection.ANNOTATION_LAST_REFRESH
                                     + "\":\"" + l.toEpochMilli() + "\"}}}");
                 } catch (KubernetesAuthException e) {
+                    registry.counter(MetricNames.GC_ANNOTATE_PATCH_FAILED).inc();
                     e.printStackTrace(listener.error("Failed to authenticate to Kubernetes cluster"));
                 } catch (IOException e) {
+                    registry.counter(MetricNames.GC_ANNOTATE_PATCH_FAILED).inc();
                     e.printStackTrace(listener.error("Failed to connect to Kubernetes cluster"));
-                } finally {
-                    patchTimer.stop();
+                } catch (KubernetesClientException e) {
+                    registry.counter(MetricNames.GC_ANNOTATE_PATCH_FAILED).inc();
+                    throw e;
                 }
                 listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
                 LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
-                var saveTimer = Metrics.metricRegistry()
-                        .timer(MetricNames.GC_ANNOTATE_SAVE_DURATION)
-                        .time();
-                try {
+                try (var saveTimer =
+                        registry.timer(MetricNames.GC_ANNOTATE_SAVE_DURATION).time()) {
                     save();
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e, () -> "Failed to save");
-                } finally {
-                    saveTimer.stop();
                 }
             });
         } catch (RuntimeException e) {
