@@ -583,6 +583,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 } catch (IOException e) {
                     registry.counter(MetricNames.GC_ANNOTATE_PATCH_FAILED).inc();
                     e.printStackTrace(listener.error("Failed to connect to Kubernetes cluster"));
+                } catch (KubernetesClientException e) {
+                    registry.counter(MetricNames.GC_ANNOTATE_PATCH_FAILED).inc();
+                    throw e;
                 }
                 listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
                 LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
