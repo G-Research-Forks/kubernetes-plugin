@@ -21,6 +21,10 @@ public class MetricNames {
 
     /** Duration histogram of the TTL refresh phase alone, across all live agents. */
     public static final String GC_ANNOTATE_DURATION = PREFIX + ".gc.annotate.duration.seconds";
+    /** Number of live agents whose TTL annotation was considered for annotation. */
+    public static final String GC_AGENTS_CONSIDERED = PREFIX + ".gc.agents.considered";
+    /** Number of TTL refresh PATCHes that failed, potentially resulting in pod GC or slow sweeps */
+    public static final String GC_ANNOTATE_PATCH_FAILED = PREFIX + ".gc.annotate.patch.failed";
 
     /** Per-agent duration of the Kubernetes PATCH that refreshes the TTL annotation. */
     public static final String GC_ANNOTATE_PATCH_DURATION = PREFIX + ".gc.annotate.patch.duration.seconds";
@@ -31,11 +35,6 @@ public class MetricNames {
     public static final String GC_ANNOTATE_MICROS = PREFIX + ".gc.annotate.total_duration.micros";
     /** Cumulative time spent in {@code save()} during the TTL refresh phase, in microseconds */
     public static final String GC_ANNOTATE_SAVE_MICROS = PREFIX + ".gc.annotate.save.total_duration.micros";
-
-    /** A count of TTL refresh PATCHes that failed, potentially resulting in pod GC or slow sweeps */
-    public static final String GC_ANNOTATE_PATCH_FAILED = PREFIX + ".gc.annotate.patch.failed";
-    /** Number of live agents whose TTL annotation was considered for annotation. */
-    public static final String GC_AGENTS_CONSIDERED = PREFIX + ".gc.agents.considered";
 
     /** Duration of the orphan detection and deletion phase alone. */
     public static final String GC_COLLECT_DURATION = PREFIX + ".gc.collect.duration.seconds";
