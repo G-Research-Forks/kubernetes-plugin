@@ -28,13 +28,9 @@ public class MetricNames {
 
     /** Per-agent duration of the Kubernetes PATCH that refreshes the TTL annotation. */
     public static final String GC_ANNOTATE_PATCH_DURATION = PREFIX + ".gc.annotate.patch.duration.seconds";
-    /** Per-agent duration of the {@code save()} XML write that follows the TTL PATCH. */
-    public static final String GC_ANNOTATE_SAVE_DURATION = PREFIX + ".gc.annotate.save.duration.seconds";
 
     /** Cumulative time spent in the TTL refresh phase, in microseconds. Histograms don't carry totals */
     public static final String GC_ANNOTATE_MICROS = PREFIX + ".gc.annotate.total_duration.micros";
-    /** Cumulative time spent in {@code save()} during the TTL refresh phase, in microseconds */
-    public static final String GC_ANNOTATE_SAVE_MICROS = PREFIX + ".gc.annotate.save.total_duration.micros";
 
     /** Duration of the orphan detection and deletion phase alone. */
     public static final String GC_COLLECT_DURATION = PREFIX + ".gc.collect.duration.seconds";
