@@ -122,33 +122,39 @@ public final class KubernetesProvisioningLimits {
      * @param numExecutors the number of executors (pretty much always 1)
      */
     public void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+        unregister(cloud.name, podTemplate.getId(), numExecutors);
+    }
+
+    /**
+     * Unregisters executors by cloud name and pod template id, the same keys used when counting existing agents at
+     * startup. Does not require the pod template to still exist (e.g. ephemeral templates from a {@code podTemplate}
+     * pipeline step are gone after a controller restart).
+     */
+    @Restricted(NoExternalUse.class)
+    void unregister(@NonNull String cloudName, @NonNull String podTemplateId, int numExecutors) {
         if (initInstance()) {
             synchronized (this) {
-                int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
+                int newGlobalCount = getGlobalCount(cloudName) - numExecutors;
                 if (newGlobalCount < 0) {
                     LOGGER.log(
                             Level.WARNING,
-                            "Global count for " + cloud.name
+                            "Global count for " + cloudName
                                     + " went below zero. There is likely a bug in kubernetes-plugin");
                 }
-                cloudCounts.put(cloud.name, Math.max(0, newGlobalCount));
-                LOGGER.log(
-                        Level.FINEST,
-                        () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/"
-                                + cloud.getContainerCap());
+                cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
+                LOGGER.log(Level.FINEST, () -> cloudName + " global count: " + Math.max(0, newGlobalCount));
 
-                int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) - numExecutors;
+                int newPodTemplateCount = getPodTemplateCount(podTemplateId) - numExecutors;
                 if (newPodTemplateCount < 0) {
                     LOGGER.log(
                             Level.WARNING,
-                            "Pod template count for " + podTemplate.getName()
+                            "Pod template count for " + podTemplateId
                                     + " went below zero. There is likely a bug in kubernetes-plugin");
                 }
-                podTemplateCounts.put(podTemplate.getId(), Math.max(0, newPodTemplateCount));
+                podTemplateCounts.put(podTemplateId, Math.max(0, newPodTemplateCount));
                 LOGGER.log(
                         Level.FINEST,
-                        () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/"
-                                + podTemplate.getInstanceCap());
+                        () -> "Pod template " + podTemplateId + " count: " + Math.max(0, newPodTemplateCount));
             }
         }
     }
@@ -172,10 +178,18 @@ public final class KubernetesProvisioningLimits {
             if (node instanceof KubernetesSlave) {
                 KubernetesProvisioningLimits instance = KubernetesProvisioningLimits.get();
                 KubernetesSlave kubernetesNode = (KubernetesSlave) node;
-                PodTemplate template = kubernetesNode.getTemplateOrNull();
-                if (template != null) {
-                    instance.unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
+                String cloudName = kubernetesNode.getCloudName();
+                String templateId = kubernetesNode.getTemplateId();
+                if (cloudName == null || templateId == null) {
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Cannot release provisioning slot of agent " + node.getNodeName()
+                                    + ": cloud name or pod template id is not set");
+                    return;
                 }
+                // Use the persisted keys rather than resolving the template, which may no longer exist
+                // (e.g. ephemeral pipeline templates after a restart); otherwise the slot would leak.
+                instance.unregister(cloudName, templateId, node.getNumExecutors());
             }
         }
     }
